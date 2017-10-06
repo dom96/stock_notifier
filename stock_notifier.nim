@@ -1,4 +1,4 @@
-import asyncdispatch, httpclient, strutils, os, browsers, future
+import asyncdispatch, httpclient, strutils, os, browsers, future, times
 
 import notifications/macosx
 
@@ -19,7 +19,9 @@ proc checkArgosHasStock(): bool =
     let content = client.getContent(argosUrl)
     client.close()
 
-    return "Currently unavailable" notin content
+    result = "Currently unavailable" notin content
+    if result:
+      writeFile(getCurrentDir() / ("argos-yes-body-" & $epochTime()), content)
   except Exception as exc:
     echo("Could not check argos: ", exc.msg)
     return false
@@ -28,12 +30,12 @@ proc checkAmazonHasStock(): bool =
   ## Returns true when Amazon contains some stock.
   try:
     echo("Checking amazon")
-    let client = newHttpClient("Mozilla/5.0 (Windows NT 10.0; Win64; x64) " &
-                               "AppleWebKit/537.36 (KHTML, like Gecko) " &
-                               "Chrome/52.0.2743.116 Safari/537.36 Edge/15.15063")
+    let client = newHttpClient("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
     let content = client.getContent(amazonUrl)
     client.close()
-    return "Available from" notin content
+    result = "Available from" notin content
+    if result:
+      writeFile(getCurrentDir() / ("amazon-yes-body-" & $epochTime()), content)
   except Exception as exc:
     echo("Could not check amazon: ", exc.msg)
     return false

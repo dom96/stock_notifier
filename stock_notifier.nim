@@ -13,21 +13,30 @@ proc onNotificationClick(info: ClickInfo, url: string) =
 
 proc checkArgosHasStock(): bool =
   ## Returns true when Argos contains some stock.
-  echo("Checking argos")
-  let client = newHttpClient()
-  let content = client.getContent(argosUrl)
+  try:
+    echo("Checking argos")
+    let client = newHttpClient()
+    let content = client.getContent(argosUrl)
+    client.close()
 
-  return "Currently unavailable" notin content
+    return "Currently unavailable" notin content
+  except Exception as exc:
+    echo("Could not check argos: ", exc.msg)
+    return false
 
 proc checkAmazonHasStock(): bool =
   ## Returns true when Amazon contains some stock.
-  echo("Checking amazon")
-  let client = newHttpClient("Mozilla/5.0 (Windows NT 10.0; Win64; x64) " &
-                             "AppleWebKit/537.36 (KHTML, like Gecko) " &
-                             "Chrome/52.0.2743.116 Safari/537.36 Edge/15.15063")
-  let content = client.getContent(amazonUrl)
-
-  return "Available from" notin content
+  try:
+    echo("Checking amazon")
+    let client = newHttpClient("Mozilla/5.0 (Windows NT 10.0; Win64; x64) " &
+                               "AppleWebKit/537.36 (KHTML, like Gecko) " &
+                               "Chrome/52.0.2743.116 Safari/537.36 Edge/15.15063")
+    let content = client.getContent(amazonUrl)
+    client.close()
+    return "Available from" notin content
+  except Exception as exc:
+    echo("Could not check amazon: ", exc.msg)
+    return false
 
 while true:
   echo("Checking stock...")

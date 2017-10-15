@@ -1,4 +1,4 @@
-import asyncdispatch, httpclient, strutils, os, browsers, future, times
+import asyncdispatch, httpclient, strutils, os, browsers, future, times, re
 
 import notifications/macosx
 
@@ -30,10 +30,25 @@ proc checkAmazonHasStock(): bool =
   ## Returns true when Amazon contains some stock.
   try:
     echo("Checking amazon")
-    let client = newHttpClient("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
-    let content = client.getContent(amazonUrl)
+    let client = newHttpClient("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:56.0) Gecko/20100101 Firefox/56.0")
+    let request = client.get(amazonUrl)
+    let content = request.body
+    if request.status != Http200:
+      writeFile(getCurrentDir() /
+                ("amazon-$#-body-$#" % [request.status, $epochTime()]), content)
+      raise newException(HttpRequestError, request.status)
+
     client.close()
-    result = "Available from" notin content
+
+    let pattern = re"<span id=""priceblock_ourprice"" class=""a-size-medium a-color-price"">(.+?)<\/span>"
+    var matches: array[1, string]
+    var price = 200.0
+    if content.find(pattern, matches) != -1:
+      price = parseFloat(matches[0][len("£") .. ^1])
+
+    result = "Available from" notin content and
+             price < 90.0
+
     if result:
       writeFile(getCurrentDir() / ("amazon-yes-body-" & $epochTime()), content)
   except Exception as exc:

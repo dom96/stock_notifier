@@ -1,6 +1,8 @@
 import asyncdispatch, httpclient, strutils, os, browsers, future, times, re
+import options
 
 import notifications/macosx
+import webdriver
 
 const
   argosUrl = "http://www.argos.co.uk/Product/7366077"
@@ -30,21 +32,18 @@ proc checkAmazonHasStock(): bool =
   ## Returns true when Amazon contains some stock.
   try:
     echo("Checking amazon")
-    let client = newHttpClient("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:56.0) Gecko/20100101 Firefox/56.0")
-    let request = client.get(amazonUrl)
-    let content = request.body
-    if request.status != Http200:
-      writeFile(getCurrentDir() /
-                ("amazon-$#-body-$#" % [request.status, $epochTime()]), content)
-      raise newException(HttpRequestError, request.status)
+    let webDriver = newWebDriver()
+    let session = webDriver.createSession()
+    defer: session.close()
 
-    client.close()
+    session.navigate(amazonUrl)
+    let content = session.getPageSource()
 
-    let pattern = re"<span id=""priceblock_ourprice"" class=""a-size-medium a-color-price"">(.+?)<\/span>"
-    var matches: array[1, string]
+    let element = session.findElement("#priceblock_ourprice")
     var price = 200.0
-    if content.find(pattern, matches) != -1:
-      price = parseFloat(matches[0][len("£") .. ^1])
+    if element.isSome():
+      let priceStr = element.get().getText()
+      price = parseFloat(priceStr[len("£") .. ^1])
 
     result = "Available from" notin content and
              price < 90.0

@@ -10,3 +10,5 @@ license       = "MIT"
 requires "nim >= 0.17.2"
 
 requires "notifications"
+
+requires "webdriver"
